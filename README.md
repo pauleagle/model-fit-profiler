@@ -15,8 +15,10 @@ Phase 3：整合品質分數與效能數據，產生 routing_recommendations.jso
 在這個專案中，`task_type` 不是單純分類標籤，而是以下設定的組合：
 
 ```text
-task_type = system prompt + test prompt + temperature + max tokens + judge rubric + routing policy
+task_type = system prompt + test_plan_task_question + temperature + max tokens + judge rubric + routing policy
 ```
+
+其中 `task_system_prompts.json` 可與實際的 `llm-router` 共用；`profiler_task_prompts.json` 則只放測試計畫問題，欄位名稱為 `test_plan_task_question`，避免和 runtime prompt 混淆。
 
 ## 專案結構
 
@@ -26,12 +28,39 @@ model-fit-profiler/
 ├─ phase2-llm-as-a-judge.py          # Phase 2：依 task_type 評分回答品質
 ├─ phase3-routing-recommender.py     # Phase 3：產生 llm-router 建議設定
 ├─ profiler_common.py                # 共用 helper：config include、分數正規化、JSON parser 等
-├─ profiler_config.json              # 主設定：system prompts、judge rubrics、weights、judge models
-├─ profiler_task_prompts.json        # task_type 測試題庫
+├─ profiler_config.json              # 主設定：params、judge rubrics、weights、judge models、includes
+├─ task_system_prompts.json          # task_type system prompts，可與 llm-router 共用
+├─ profiler_task_prompts.json        # test_plan_task_question：Phase 1 測試題庫
 ├─ profiler_test_suite.json          # model × task_type 測試矩陣
 ├─ requirements.txt
 └─ .gitignore
 ```
+
+
+## 設定檔拆分
+
+`profiler_config.json` 透過 `includes` 載入可共用或可替換的設定：
+
+```json
+{
+  "includes": {
+    "system_prompts": "task_system_prompts.json",
+    "test_plan_task_question": "profiler_task_prompts.json",
+    "test_suite": "profiler_test_suite.json"
+  }
+}
+```
+
+可用環境變數切換不同設定檔：
+
+```bash
+set PROFILER_SYSTEM_PROMPTS=task_system_prompts.local.json
+set PROFILER_TEST_PLAN_TASK_QUESTION=profiler_task_prompts.quick.json
+set PROFILER_TEST_SUITE=profiler_test_suite.quick.json
+python phase1-profiler-batch.py
+```
+
+`PROFILER_TASK_PROMPTS` 仍保留為 `PROFILER_TEST_PLAN_TASK_QUESTION` 的 backward-compatible alias。
 
 ## 環境需求
 
@@ -142,7 +171,6 @@ Phase 3 會整合：
 
 主設定檔，包含：
 
-- `system_prompts`
 - `task_params`
 - `score_keys`
 - `task_weights`
@@ -157,15 +185,20 @@ Phase 3 會整合：
 ```json
 {
   "includes": {
-    "task_prompts": "profiler_task_prompts.json",
+    "system_prompts": "task_system_prompts.json",
+    "test_plan_task_question": "profiler_task_prompts.json",
     "test_suite": "profiler_test_suite.json"
   }
 }
 ```
 
+### `task_system_prompts.json`
+
+放各 task_type 的 runtime system prompt，可與 `llm-router` 共用。
+
 ### `profiler_task_prompts.json`
 
-放各 task_type 的測試題目。適合替換成不同 benchmark 題庫。
+放 Phase 1 測試計畫題目，頂層欄位為 `test_plan_task_question`。適合替換成不同 benchmark 題庫。
 
 ### `profiler_test_suite.json`
 
@@ -177,7 +210,8 @@ Phase 3 會整合：
 
 ```bash
 set PROFILER_CONFIG=profiler_config.json
-set PROFILER_TASK_PROMPTS=profiler_task_prompts.json
+set PROFILER_SYSTEM_PROMPTS=task_system_prompts.json
+set PROFILER_TEST_PLAN_TASK_QUESTION=profiler_task_prompts.json
 set PROFILER_TEST_SUITE=profiler_test_suite.json
 set PHASE1_RESULTS_DIR=./phase1_results
 set PHASE1_SUMMARY_CSV=./phase1_results/phase1_summary.csv

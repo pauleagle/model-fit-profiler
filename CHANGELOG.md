@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 - Added shared helper module: `profiler_common.py`.
 - Added externalized config files:
   - `profiler_config.json`
+  - `task_system_prompts.json`
   - `profiler_task_prompts.json`
   - `profiler_test_suite.json`
 - Added task-aware system prompts for:
@@ -42,8 +43,8 @@ All notable changes to this project will be documented in this file.
 - Renamed Phase 1 script to hyphen naming: `phase1-profiler-batch.py`.
 - Kept Phase 2 script naming as: `phase2-llm-as-a-judge.py`.
 - Moved Phase 1 summary output into `./phase1_results/phase1_summary.csv` by default.
-- Split `task_prompts` and `test_suite` into independent JSON files for reuse.
-- Updated config loading to support include files and environment variable overrides.
+- Split `system_prompts`, `test_plan_task_question`, and `test_suite` into independent JSON files for reuse.
+- Updated config loading to support include files, `test_plan_task_question`, and environment variable overrides.
 
 ### Notes
 

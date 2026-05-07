@@ -14,3 +14,6 @@ phase3_results/
 profiler_config.local.json
 profiler_task_prompts.local.json
 profiler_test_suite.local.json
+task_system_prompts.local.json
+profiler_task_prompts.quick.json
+profiler_test_suite.quick.json

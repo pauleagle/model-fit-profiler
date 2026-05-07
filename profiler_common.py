@@ -2,14 +2,13 @@
 Common helpers for Local Model Fit Profiler.
 
 This module intentionally contains no Ollama/OpenAI calls.
-It centralizes config loading, include merging, task normalization,
-score handling, JSON parsing, file naming, and GPU-stat compatibility helpers.
+It centralizes config loading, task normalization, score handling,
+JSON parsing, file naming, and GPU-stat compatibility helpers.
 """
 
 from __future__ import annotations
 
 import json
-import os
 import re
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
@@ -22,64 +21,76 @@ def _load_json(path: Path) -> Any:
         return json.load(f)
 
 
-def _resolve_include_path(base_dir: Path, env_name: str, configured_path: str | None) -> Path | None:
-    override = os.getenv(env_name)
-    raw = override or configured_path
-    if not raw:
-        return None
-    path = Path(raw)
-    if not path.is_absolute():
-        path = base_dir / path
-    return path
+def _resolve_include_path(base_config_path: Path, include_value: str | Path) -> Path:
+    include_path = Path(include_value)
+    if include_path.is_absolute():
+        return include_path
+    return base_config_path.parent / include_path
 
 
-def _merge_include(config: Dict[str, Any], key: str, include_data: Any) -> None:
-    """
-    Include file can be either:
-    - {"task_prompts": {...}}
-    - raw {...} for task_prompts
-    - {"test_suite": [...]}
-    - raw [...] for test_suite
-    """
-    if isinstance(include_data, dict) and key in include_data:
-        config[key] = include_data[key]
-    else:
-        config[key] = include_data
+def _unwrap_include_payload(key: str, payload: Any) -> Any:
+    """Support both raw JSON payloads and {key: payload} wrapper files."""
+    if isinstance(payload, dict):
+        if key in payload:
+            return payload[key]
+        if key == "test_plan_task_question" and "task_prompts" in payload:
+            return payload["task_prompts"]
+    return payload
 
 
 def load_config(config_path: str | Path | None = None) -> Dict[str, Any]:
-    """Load profiler_config.json and merge optional include files.
+    """
+    Load profiler configuration and merge optional external include files.
 
-    Supported includes in profiler_config.json:
-        "includes": {
-          "task_prompts": "profiler_task_prompts.json",
-          "test_suite": "profiler_test_suite.json"
-        }
+    Split config supports:
+    - task_system_prompts.json via includes.system_prompts
+    - profiler_task_prompts.json via includes.test_plan_task_question
+    - profiler_test_suite.json via includes.test_suite
 
-    Environment overrides:
-        PROFILER_TASK_PROMPTS=/path/to/prompts.json
-        PROFILER_TEST_SUITE=/path/to/suite.json
+    Backward compatibility:
+    - config["task_prompts"] is still populated as an alias for
+      config["test_plan_task_question"].
+    - PROFILER_TASK_PROMPTS remains an alias for
+      PROFILER_TEST_PLAN_TASK_QUESTION.
     """
     path = Path(config_path) if config_path else DEFAULT_CONFIG_PATH
     config = _load_json(path)
-    base_dir = path.parent
-    includes = config.get("includes") or {}
+    includes = dict(config.get("includes") or {})
 
-    task_prompts_path = _resolve_include_path(
-        base_dir,
-        "PROFILER_TASK_PROMPTS",
-        includes.get("task_prompts"),
-    )
-    if task_prompts_path:
-        _merge_include(config, "task_prompts", _load_json(task_prompts_path))
+    env_system_prompts = None
+    env_test_plan_task_question = None
+    env_task_prompts_alias = None
+    env_test_suite = None
+    try:
+        import os
 
-    test_suite_path = _resolve_include_path(
-        base_dir,
-        "PROFILER_TEST_SUITE",
-        includes.get("test_suite"),
-    )
-    if test_suite_path:
-        _merge_include(config, "test_suite", _load_json(test_suite_path))
+        env_system_prompts = os.getenv("PROFILER_SYSTEM_PROMPTS")
+        env_test_plan_task_question = os.getenv("PROFILER_TEST_PLAN_TASK_QUESTION")
+        env_task_prompts_alias = os.getenv("PROFILER_TASK_PROMPTS")
+        env_test_suite = os.getenv("PROFILER_TEST_SUITE")
+    except Exception:
+        pass
+
+    include_mapping = {
+        "system_prompts": env_system_prompts or includes.get("system_prompts"),
+        "test_plan_task_question": (
+            env_test_plan_task_question
+            or env_task_prompts_alias
+            or includes.get("test_plan_task_question")
+            or includes.get("task_prompts")
+        ),
+        "test_suite": env_test_suite or includes.get("test_suite"),
+    }
+
+    for key, include_value in include_mapping.items():
+        if include_value:
+            include_path = _resolve_include_path(path, include_value)
+            config[key] = _unwrap_include_payload(key, _load_json(include_path))
+
+    if "test_plan_task_question" not in config and "task_prompts" in config:
+        config["test_plan_task_question"] = config["task_prompts"]
+    if "task_prompts" not in config and "test_plan_task_question" in config:
+        config["task_prompts"] = config["test_plan_task_question"]
 
     return config
 
@@ -128,10 +139,10 @@ def ensure_string_list(value: Any) -> List[str]:
 
 def known_task_types(config: Dict[str, Any]) -> set[str]:
     task_rubrics = config.get("task_rubrics") or {}
-    task_prompts = config.get("task_prompts") or {}
+    test_plan_task_question = config.get("test_plan_task_question") or config.get("task_prompts") or {}
     system_prompts = config.get("system_prompts") or {}
     task_weights = config.get("task_weights") or {}
-    return set(task_rubrics) | set(task_prompts) | set(system_prompts) | set(task_weights) | {"general"}
+    return set(task_rubrics) | set(test_plan_task_question) | set(system_prompts) | set(task_weights) | {"general"}
 
 
 def normalize_task_type(task_type: Any, config: Dict[str, Any]) -> str:

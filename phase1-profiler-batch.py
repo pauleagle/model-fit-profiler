@@ -8,7 +8,7 @@ Responsibilities kept here:
 
 Moved to external config/common files:
 - task system prompts
-- test prompts
+- test-plan task questions
 - task params
 - test suite
 - safe filename/config helpers
@@ -35,14 +35,15 @@ CONFIG = load_config(CONFIG_PATH)
 
 OLLAMA_URL = os.getenv("OLLAMA_GENERATE_URL", "http://localhost:11434/api/generate")
 OUTPUT_DIR = Path(os.getenv("PHASE1_RESULTS_DIR", "./phase1_results"))
-SUMMARY_CSV = Path(os.getenv("PHASE1_SUMMARY_CSV", "phase1_summary.csv"))
+_summary_csv_env = os.getenv("PHASE1_SUMMARY_CSV")
+SUMMARY_CSV = Path(_summary_csv_env) if _summary_csv_env else OUTPUT_DIR / "phase1_summary.csv"
 REQUEST_TIMEOUT_SEC = float(os.getenv("PHASE1_REQUEST_TIMEOUT_SEC", "600"))
 GPU_SAMPLE_INTERVAL_SEC = float(os.getenv("GPU_SAMPLE_INTERVAL_SEC", "0.5"))
 COOLDOWN_SEC = float(os.getenv("PHASE1_COOLDOWN_SEC", "10"))
 CLEAR_VRAM_WAIT_SEC = float(os.getenv("CLEAR_VRAM_WAIT_SEC", "5"))
 
 SYSTEM_PROMPTS: Dict[str, str] = CONFIG["system_prompts"]
-TASK_PROMPTS: Dict[str, str] = CONFIG["task_prompts"]
+TEST_PLAN_TASK_QUESTION: Dict[str, str] = CONFIG["test_plan_task_question"]
 TASK_PARAMS: Dict[str, Dict[str, Any]] = CONFIG["task_params"]
 TEST_SUITE: List[Dict[str, Any]] = CONFIG["test_suite"]
 
@@ -94,7 +95,7 @@ def clear_vram() -> None:
 
 def build_prompt(task_type: str) -> str:
     system_prompt = SYSTEM_PROMPTS[task_type]
-    user_prompt = TASK_PROMPTS[task_type]
+    user_prompt = TEST_PLAN_TASK_QUESTION[task_type]
     return f"""<system>
 {system_prompt}
 </system>
@@ -112,8 +113,8 @@ def run_single_test(model_name: str, task_type: str) -> Dict[str, Any]:
 
     if task_type not in SYSTEM_PROMPTS:
         raise ValueError(f"Missing system prompt for task_type: {task_type}")
-    if task_type not in TASK_PROMPTS:
-        raise ValueError(f"Missing test prompt for task_type: {task_type}")
+    if task_type not in TEST_PLAN_TASK_QUESTION:
+        raise ValueError(f"Missing test-plan task question for task_type: {task_type}")
 
     gpu_metrics = []
     stop_monitoring = False
@@ -127,7 +128,8 @@ def run_single_test(model_name: str, task_type: str) -> Dict[str, Any]:
         "model": model_name,
         "task": task_type,
         "system_prompt": SYSTEM_PROMPTS[task_type],
-        "user_prompt": TASK_PROMPTS[task_type],
+        "test_plan_task_question": TEST_PLAN_TASK_QUESTION[task_type],
+        "user_prompt": TEST_PLAN_TASK_QUESTION[task_type],  # backward-compatible alias
         "composed_prompt": composed_prompt,
         "params": params,
         "success": False,
@@ -211,6 +213,7 @@ def run_single_test(model_name: str, task_type: str) -> Dict[str, Any]:
 
 def main() -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    SUMMARY_CSV.parent.mkdir(parents=True, exist_ok=True)
     all_summary: List[Dict[str, Any]] = []
 
     print("=== Model Fit Profiler: Phase 1 task_type batch test start ===")

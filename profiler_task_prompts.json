@@ -1,5 +1,5 @@
 {
-  "task_prompts": {
+  "test_plan_task_question": {
     "router": "幫我把以下需求分類為合適的 task_type：我想寫一個 Node.js 腳本，定期讀取 Gmail 指定 label 的信件並整理成知識庫。",
     "short_question": "什麼是垃圾回收機制 GC？請用一句話解釋。",
     "draft_generation": "請幫我寫一封關於產品交付延遲的客戶道歉信，約 200 字，語氣要誠懇，但不要承諾具體賠償。",
