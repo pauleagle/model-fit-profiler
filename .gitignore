@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Profiler outputs
+phase1_results/
+phase2_results/
+phase3_results/
+*.log
+
+# Local overrides
+profiler_config.local.json
+profiler_task_prompts.local.json
+profiler_test_suite.local.json

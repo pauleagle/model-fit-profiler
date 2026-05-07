@@ -1,0 +1,13 @@
+{
+  "task_prompts": {
+    "router": "幫我把以下需求分類為合適的 task_type：我想寫一個 Node.js 腳本，定期讀取 Gmail 指定 label 的信件並整理成知識庫。",
+    "short_question": "什麼是垃圾回收機制 GC？請用一句話解釋。",
+    "draft_generation": "請幫我寫一封關於產品交付延遲的客戶道歉信，約 200 字，語氣要誠懇，但不要承諾具體賠償。",
+    "analysis": "分析以下設計：把 llm-router 的 task_type 設計成模型選擇、system prompt、temperature、max token 的組合。這樣做的優缺點是什麼？",
+    "coding": "請用 TypeScript 寫一個簡單的 Singleton 模式，並補上使用範例。",
+    "debug": "以下是錯誤情境，請協助分析 root cause 並提出修正方式：\n\nAngular Directive 中使用：\n@HostListener('compositionend')\nonCompositionEnd(event: Event) {\n  const target = event.target as HTMLInputElement;\n}\n\nruntime 發生：\nCannot read properties of undefined (reading 'target')",
+    "summarization": "請整理以下筆記：\n\n今天討論 llm-router 的 Phase 1 profiler。原本只測 TPS，後來決定把 task_type 納入測試。每個 task_type 都應該有 system prompt、temperature、max token 與 preferred models。router 要快且穩定，只輸出 JSON。coding 應該交給 deepseek-coder。analysis 可以給 phi3 或 mistral。後續 Phase 2 要把回答品質也納入分數。",
+    "knowledge_refine": "請將以下 raw note 精鍊成可放入 EvoMind 的長期知識：\n\n今天一直遇到同樣問題：AI agent 改完 Firebase 相關結構後，忘記同步更新權限與 migration 設定，導致下一版功能看似完成但實際無法存取。後來決定把這類錯誤提升為 iron law：只要涉及資料結構、權限、migration、索引，必須一起檢查，不可只改其中一處。",
+    "prompt_engineering": "請幫我產生一段可交給 AI Studio 的 prompt，目標是實作 llm-router 的 task_type 設定檔，並要求 AI 先讀取現有專案結構，不要盲目重構。"
+  }
+}

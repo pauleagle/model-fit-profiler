@@ -1,0 +1,44 @@
+{
+  "test_suite": [
+    {
+      "model": "gemma3:1b",
+      "tasks": [
+        "router",
+        "short_question"
+      ]
+    },
+    {
+      "model": "llama3.2:3b",
+      "tasks": [
+        "short_question",
+        "summarization"
+      ]
+    },
+    {
+      "model": "phi3:mini",
+      "tasks": [
+        "router",
+        "draft_generation",
+        "analysis",
+        "knowledge_refine",
+        "prompt_engineering"
+      ]
+    },
+    {
+      "model": "mistral:7b-instruct",
+      "tasks": [
+        "draft_generation",
+        "analysis",
+        "debug",
+        "knowledge_refine"
+      ]
+    },
+    {
+      "model": "deepseek-coder:6.7b-instruct",
+      "tasks": [
+        "coding",
+        "debug"
+      ]
+    }
+  ]
+}
